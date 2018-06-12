@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"google.golang.org/appengine"
 )
 
 const crcTokenParam = "crc_token"
@@ -37,7 +39,5 @@ func crcCheck(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/"+webhookPath, crcCheck)
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		panic(err)
-	}
+	appengine.Main()
 }
