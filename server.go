@@ -4,12 +4,17 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
 	"google.golang.org/appengine"
 )
+
+type crcResponse struct {
+	ResponseToken string `json:"response_token"`
+}
 
 const crcTokenParam = "crc_token"
 const webhookPath = "webhooks"
@@ -29,12 +34,20 @@ func crcCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("crc token found: %v", crcToken)
-
 	mac := hmac.New(sha256.New, []byte(twitterConsumerSecret))
 	mac.Write([]byte(crcToken))
 
-	w.Write([]byte(base64.StdEncoding.EncodeToString(mac.Sum(nil))))
+	resp := crcResponse{"sha256=" + base64.StdEncoding.EncodeToString(mac.Sum(nil))}
+
+	js, err := json.Marshal(resp)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
 }
 
 func main() {
